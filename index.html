@@ -139,7 +139,7 @@ $(document).ready(()=>{
         const svg       = $("#職印").prop("outerHTML");
         SVGToCanvas(svg, true, (canvas) => {
             const png_data = canvas[0].toDataURL("image/png");
-            callback($("<img>").attr("src", png_data));
+            const png      = $("<img>").attr("src", png_data);
             copyImageToClipboard(png);
             canvas.remove();
         });
