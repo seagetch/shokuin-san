@@ -25,16 +25,26 @@ $(document).ready(()=>{
         local.setMinutes(this.getMinutes() - this.getTimezoneOffset());
         return local.toJSON().slice(0,10);
     });
-    
-    $("#date-text").on("input", (event) => {
-        date  = new Date($(event.target).val())
-        year  = date.getFullYear()
-        month = (" "+(date.getMonth() + 1)).substr(-2)
-        day   = (" "+date.getDate()).substr(-2)
-        $("#職印 #日付").text(year + "." + month + "." + day)
+
+    let onChangeDate = (event) => {
+        date  = new Date($("#date-text").val());
+        if ($("#japanese-date").prop("checked")) {
+            const options   = {era: 'long'};
+            let   date_text = new Intl.DateTimeFormat('ja-JP-u-ca-japanese', options).format(date);
+            date_text = date_text.replace("年", ".").replace("月",".").replace(/日$/,"")
+            $("#職印 #日付").text(date_text);
+        } else {
+            const year  = date.getFullYear();
+            const month = (" "+(date.getMonth() + 1)).substr(-2);
+            const day   = (" "+date.getDate()).substr(-2);
+            $("#職印 #日付").text(year + "." + month + "." + day);
+        }
         date_box = $("#職印 #日付")[0].getBBox();
-        $("#職印 #日付").attr("x", cx - date_box.width / 2)
-    }).val(new Date().toDateInputValue()).trigger("input");
+        $("#職印 #日付").attr("x", cx - date_box.width / 2);
+    };    
+
+    $("#date-text").on("input", onChangeDate).val(new Date().toDateInputValue()).trigger("input");
+    $("#japanese-date").on("input", onChangeDate).prop("checked", window.localStorage.getItem("japaneseDate")).trigger("input");
     
     $("#name-text").on("input", (event) => {
         let name_text = $(event.target).val()
@@ -50,35 +60,32 @@ $(document).ready(()=>{
             lower = name_text
         }
 
-        $("#職印 #上側 tspan").text(upper);
-        let upper_box = $("#職印 #上側 tspan")[0].getBBox();
-        let width = upper_box.width;
-        if (width > 80) {
-            scale = 80 / width;
-            width = 80;
-            $("#職印 #上側").attr("transform", "scale("+scale+",1)");            
-        } else {
-            scale = 1.0;
-            $("#職印 #上側").removeAttr("transform");
+        let adjust_text_width = (text_node) => {
+            let box = text_node.find("tspan")[0].getBBox();
+            let width = box.width;
+            if (width > 80) {
+                scale = 80 / width;
+                width = 80;
+                text_node.attr("transform", "scale("+scale+",1)");
+            } else {
+                scale = 1.0;
+                text_node.removeAttr("transform");
+            }
+            text_node.attr("x", (cx - width / 2) / scale);
+            text_node.find("tspan").attr("x", (cx - width / 2) / scale);
         }
-        $("#職印 #上側").attr("x", (cx - width / 2) / scale);
-        $("#職印 #上側 tspan").attr("x", (cx - width / 2) / scale);
+        $("#職印 #上側 tspan").text(upper);
+        adjust_text_width($("#職印 #上側"));
         
         $("#職印 #下側 tspan").text(lower);
-        let lower_box = $("#職印 #下側 tspan")[0].getBBox();
-        width = lower_box.width;
-        if (width > 80) {
-            scale = 80 / width;
-            width = 80;
-            $("#職印 #下側").attr("transform", "scale("+scale+",1)");            
-        } else {
-            scale = 1.0;
-            $("#職印 #下側").removeAttr("transform");
-        }
-        $("#職印 #下側").attr("x", (cx - width / 2) / scale);
-        $("#職印 #下側 tspan").attr("x", (cx - width / 2) / scale);
+        adjust_text_width($("#職印 #下側"));
         
-    }).trigger("input");
+        window.localStorage.setItem("nameText", name_text);
+        window.localStorage.setItem("japaneseDate", $("#japanese-date").prop("checked"));
+        
+        console.log(window.localStorage.getItem("japaneseDate"));
+        
+    }).val(window.localStorage.getItem("nameText")).trigger("input");
 
     let selectText = (element) => {
         var doc = document;
@@ -165,7 +172,8 @@ $(document).ready(()=>{
         $("#職印 #日付").css({"fill": color, "stroke": "none"});
         $("#職印 #上側 *").css({"fill": color, "stroke": "none"});
         $("#職印 #下側 *").css({"fill": color, "stroke": "none"});
-    }).trigger("input");
+        window.localStorage.setItem("color", color);
+    }).val(window.localStorage.getItem("color")).trigger("input");
     
 })
 </script>
@@ -176,21 +184,28 @@ $(document).ready(()=>{
 
 <div class="header"></div>
 <main role="main" class="container">
-<div>
-<label for="name-text">名前</label>
-<input type="text" id="name-text" name="name-text" />
-<label for="date-text">日付:</label>
-<input type="date" id="date-text" name="date-text" />
-<label for="color-text">色:</label>
-<input type="color" id="color-text" name="color-text" value="#ff0000" />
+<div class="col-6 d-flex flex-wrap align-content-center" >
+<div class="col-6" >
+  <label for="name-text">名前</label>
+  <input type="text" id="name-text" name="name-text" class="form-control" />
+</div>
+<div class="col-6">
+  <label for="date-text">日付:</label>
+  <input type="date" id="date-text" name="date-text" class="form-control" />
+  <input type="checkbox" id="japanese-date">和暦</input>
+</div>
+<div class="col-6">
+  <label for="color-text">色:</label>
+  <input type="color" id="color-text" name="color-text" value="#d04444" />
+</div>
 </div>
 
-<div>
-<label>クリップボードにコピー</label>
+<div class="col-6">
+<div>クリップボードにコピー</div>
 
 <input type="button" id="PNG" value="PNG" class="btn btn-primary" />
 <input type="button" id="HTML" value="HTML" class="btn btn-secondary" />
-<input type="button" id="SVG" value="SVG(ブラウザ側の対応待ち)" class="btn btn-secondary" />
+<input type="button" id="SVG" value="SVG(ブラウザ側未対応)" class="btn btn-secondary" />
 </div>
 
 <div style="padding: 5pt; margin: 3pt; border-style:solid; border-width:1px; border-color: #888888; width: 526px; height: 526px">
