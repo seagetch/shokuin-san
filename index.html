@@ -113,7 +113,7 @@ $(document).ready(()=>{
     });
 
     $("#PNG").on("click", async () => {
-        svgAsPngUri($("#職印")[0]).then(copyImageURLtoClipboard);
+        svgAsPngUri($("#職印")[0],{scale: 3.6}).then(copyImageURLtoClipboard);
     });
     
     $("#color-text").on("input", (event) => {
