@@ -80,43 +80,110 @@ $(document).ready(()=>{
         
     }).trigger("input");
 
-    let copyImageURLtoClipboard = (url) => {
-        let image = $("<div>").css({width: "512px", height: "512px"}).attr("contenteditable", true).append($("<img>").attr("id", "clipboard-img").attr("src", url)).appendTo(document.body);
-        SelectText(image[0]);
+    let selectText = (element) => {
+        var doc = document;
+        if (doc.body.createTextRange) {
+            var range = document.body.createTextRange();
+            range.moveToElementText(element);
+            range.select();
+        } else if (window.getSelection) {
+            var selection = window.getSelection();
+            var range = document.createRange();
+            range.selectNodeContents(element);
+            selection.removeAllRanges();
+            selection.addRange(range);
+        }
+    }
+    let copyImageToClipboard = (image) => {
+        let div = $("<div>").css({width: "512px", height: "512px"}).attr("contenteditable", true).append(image).appendTo(document.body);
+        console.log(image);
+        console.log(div);
+        selectText(div[0]);
         document.execCommand('copy');
         window.getSelection().removeAllRanges();
-        image.remove();
+        div.remove();
     }
+    let get_permission = async () => {
+        const {state} = await navigator.permissions.query({ name: 'clipboard-write' });
+        return state === "granted";
+    }
+    let SVGToCanvas = (svg, transparent, callback) => {
+        const url   = "data:image/svg+xml;base64,"+btoa(unescape(encodeURIComponent(svg)));
+        const image = $("<img>").attr("id", "clipboard-img").on("load", (ev) => {
+            let width  = 512;
+            let height = 512;
+            let canvas = $("<canvas>").attr({width: width, height: height});
+            let ctx    = canvas[0].getContext("2d");
+            if (!transparent && platform.os.family == "Windows") {
+                ctx.fillStyle = "#ffffff";
+                ctx.fillRect(0, 0, width, height);
+            }
+            ctx.drawImage(image[0], 0, 0);
+            image.remove();
+
+            callback(canvas);
+        }).attr("src", url);
+    };
+    let canvasToPNG = (canvas, callback) => {
+        const png_data = canvas[0].toDataURL("image/png");
+        callback($("<img>").attr("src", png_data));
+    };
     $("#SVG").on("click", async (ev)=>{
-        async function get_permission() {
-            const {state} = await navigator.permissions.query({ name: 'clipboard-write' });
-            return state === "granted";
-        }
         await get_permission();
         console.log("permitted");
-        const svg = $("#職印").prop("outerHTML");
-        let blob = new Blob([svg], {type: 'image/svg+xml'});
-        let ci = new ClipboardItem({'image/svg+xml': blob});
+        const svg  = $("#職印").prop("outerHTML");
+        let   blob = new Blob([svg], {type: 'image/svg+xml'});
+        let   ci   = new ClipboardItem({'image/svg+xml': blob});
         await navigator.clipboard.write([ci]);
+    });
+
+    $("#HTML").on("click", async (ev) => {
+        console.log("HTML clicked");
+        const svg       = $("#職印").prop("outerHTML");
+        SVGToCanvas(svg, true, (canvas) => {
+            canvasToPNG(canvas, (png) => {
+                copyImageToClipboard(png)
+                canvas.remove();
+            });
+        }); 
+        
         /*
-        const url = "data:image/svg+xml;base64,"+btoa(unescape(encodeURIComponent(svg)));
+        const url   = "data:image/svg+xml;base64,"+btoa(unescape(encodeURIComponent(svg)));
         console.log(url);
-        copyImageURLtoClipboard(url);
+        const image = $("<img>").attr("id", "clipboard-img").on("load", (ev) => {
+            let width  = 512;
+            let height = 512;
+            let canvas = $("<canvas>").attr({width: width, height: height});
+            let ctx    = canvas[0].getContext("2d");
+            if (platform.os.family == "Windows") {
+                ctx.fillStyle = "#ffffff";
+                ctx.fillRect(0, 0, width, height);
+            }
+            ctx.drawImage(image[0], 0, 0);
+            const png_data = canvas[0].toDataURL("image/png");
+            const png_img  = $("<img>").attr("src", png_data);
+            copyImagetoClipboard(png_img);
+        }).attr("src", url);
+        console.log(image);
         */
     });
 
     $("#PNG").on("click", async () => {
-        async function get_permission() {
-            const {state} = await navigator.permissions.query({ name: 'clipboard-write' });
-            return state === "granted";
-        }
         await get_permission();
         console.log("permitted");
-        const svg = $("#職印").prop("outerHTML");
-        const url = "data:image/svg+xml;base64,"+btoa(unescape(encodeURIComponent(svg)));
-        let image = $("<img>").attr("id", "clipboard-img").attr("src", url);
-        image.on("load", async () => {
-            let width = 512;
+        const svg   = $("#職印").prop("outerHTML");
+        const png_image = SVGToCanvas(svg, true, (canvas) => {
+            canvas[0].toBlob(async png => {
+                let blob = new Blob([png], {type: "image/png"});
+                let ci = new ClipboardItem({'image/png': blob});
+                await navigator.clipboard.write([ci]);
+                canvas.remove();
+            });
+        }); 
+/*
+        const url   = "data:image/svg+xml;base64,"+btoa(unescape(encodeURIComponent(svg)));
+        let   image = $("<img>").attr("id", "clipboard-img").on("load", async () => {
+            let width  = 512;
             let height = 512;
             let canvas = $("<canvas>").attr({width: width, height: height});
             let ctx    = canvas[0].getContext("2d");
@@ -132,7 +199,8 @@ $(document).ready(()=>{
                 image.remove();
                 canvas.remove();
             });
-        });
+        }).attr("src", url);
+*/
     });
     
     $("#color-text").on("input", (event) => {
@@ -165,6 +233,7 @@ $(document).ready(()=>{
 <label>クリップボードにコピー</label>
 
 <input type="button" id="PNG" value="PNG" class="btn btn-primary" />
+<input type="button" id="HTML" value="HTML" class="btn btn-secondary" />
 <input type="button" id="SVG" value="SVG(ブラウザ側の対応待ち)" class="btn btn-secondary" />
 </div>
 
