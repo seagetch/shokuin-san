@@ -104,8 +104,8 @@ $(document).ready(()=>{
     $("#SVG").on("click", (ev)=>{
         try {
             const svg = $("#職印").prop("outerHTML");
-            const blob = new Blob([svg], {type: "image/svg+xml"});
-            const url = URL.createObjectURL(blob);
+            const url = "data:image/svg+xml;base64,"+btoa(unescape(encodeURIComponent(svg)));
+            console.log(url);
             copyImageURLtoClipboard(url);
         } catch(e) {
             console.log(e);
