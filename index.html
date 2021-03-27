@@ -2,26 +2,11 @@
 <head>
 <title>職印さん</title>
 <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/save-svg-as-png/1.4.17/saveSvgAsPng.min.js" integrity="sha512-vLkvtzbaBvXHQpdTtDT8Gg+vNqXGQ0+vgzoAFzuR6rbQQg+ECaFcjXpTT4EBA46EKACh49lJsBoarn3yYg0S4Q==" crossorigin="anonymous"></script>
 <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
 </head>
 <body>
 <script>
 $(document).ready(()=>{
-    function SelectText(element) {
-        var doc = document;
-        if (doc.body.createTextRange) {
-            var range = document.body.createTextRange();
-            range.moveToElementText(element);
-            range.select();
-        } else if (window.getSelection) {
-            var selection = window.getSelection();
-            var range = document.createRange();
-            range.selectNodeContents(element);
-            selection.removeAllRanges();
-            selection.addRange(range);
-        }
-    }
     function setFont(font) {
         style = {"font-family": font};
         $("#職印 #日付").css(style);
@@ -51,8 +36,8 @@ $(document).ready(()=>{
     }).val(new Date().toDateInputValue()).trigger("input");
     
     $("#name-text").on("input", (event) => {
-        name_text = $(event.target).val()
-        names = name_text.split(/[\u{20}\u{3000}]/u)
+        let name_text = $(event.target).val()
+        let names = name_text.split(/[\u{20}\u{3000}]/u)
         if (names.length > 1) {
             upper = names[0]
             lower = names[1]
@@ -65,8 +50,8 @@ $(document).ready(()=>{
         }
 
         $("#職印 #上側 tspan").text(upper);
-        upper_box = $("#職印 #上側 tspan")[0].getBBox();
-        width = upper_box.width;
+        let upper_box = $("#職印 #上側 tspan")[0].getBBox();
+        let width = upper_box.width;
         if (width > 80) {
             scale = 80 / width;
             width = 80;
@@ -79,7 +64,7 @@ $(document).ready(()=>{
         $("#職印 #上側 tspan").attr("x", (cx - width / 2) / scale);
         
         $("#職印 #下側 tspan").text(lower);
-        lower_box = $("#職印 #下側 tspan")[0].getBBox();
+        let lower_box = $("#職印 #下側 tspan")[0].getBBox();
         width = lower_box.width;
         if (width > 80) {
             scale = 80 / width;
@@ -102,9 +87,15 @@ $(document).ready(()=>{
         image.remove();
     }
     $("#SVG").on("click", async (ev)=>{
+        async function get_permission() {
+            const {state} = await navigator.permissions.query({ name: 'clipboard-write' });
+            return state === "granted";
+        }
+        await get_permission();
+        console.log("permitted");
         const svg = $("#職印").prop("outerHTML");
-        blob = new Blob([svg], {type: 'image/svg+xml'});
-        ci = new ClipboardItem({'image/svg+xml': blob});
+        let blob = new Blob([svg], {type: 'image/svg+xml'});
+        let ci = new ClipboardItem({'image/svg+xml': blob});
         await navigator.clipboard.write([ci]);
         /*
         const url = "data:image/svg+xml;base64,"+btoa(unescape(encodeURIComponent(svg)));
@@ -114,11 +105,30 @@ $(document).ready(()=>{
     });
 
     $("#PNG").on("click", async () => {
-        svgAsPngUri($("#職印")[0],{scale: 3.6}).then(copyImageURLtoClipboard);
+        async function get_permission() {
+            const {state} = await navigator.permissions.query({ name: 'clipboard-write' });
+            return state === "granted";
+        }
+        await get_permission();
+        console.log("permitted");
+        const svg = $("#職印").prop("outerHTML");
+        const url = "data:image/svg+xml;base64,"+btoa(unescape(encodeURIComponent(svg)));
+        let image = $("<img>").attr("id", "clipboard-img").attr("src", url);
+        image.on("load", async () => {
+            let canvas = $("<canvas>").attr({width: 512, height: 512});
+            canvas[0].getContext("2d").drawImage(image[0], 0, 0);
+            canvas[0].toBlob(async png => {
+                let blob = new Blob([png], {type: "image/png"});
+                let ci = new ClipboardItem({'image/png': blob});
+                await navigator.clipboard.write([ci]);
+                image.remove();
+                canvas.remove();
+            });
+        });
     });
     
     $("#color-text").on("input", (event) => {
-        color = $(event.target).val();
+        const color = $(event.target).val();
         $("#職印 *").css({"stroke": color});
         $("#職印 #日付").css({"fill": color, "stroke": "none"});
         $("#職印 #上側 *").css({"fill": color, "stroke": "none"});
@@ -146,8 +156,8 @@ $(document).ready(()=>{
 <div>
 <label>クリップボードにコピー</label>
 
-<input type="button" id="SVG" value="SVG" class="btn btn-primary" />
 <input type="button" id="PNG" value="PNG" class="btn btn-primary" />
+<input type="button" id="SVG" value="SVG(ブラウザ側の対応待ち)" class="btn btn-secondary" />
 </div>
 
 <div style="padding: 5pt; margin: 3pt; border-style:solid; border-width:1px; border-color: #888888; width: 526px; height: 526px">
