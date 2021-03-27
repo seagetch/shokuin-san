@@ -102,14 +102,15 @@ $(document).ready(()=>{
         image.remove();
     }
     $("#SVG").on("click", (ev)=>{
-        try {
-            const svg = $("#職印").prop("outerHTML");
-            const url = "data:image/svg+xml;base64,"+btoa(unescape(encodeURIComponent(svg)));
-            console.log(url);
-            copyImageURLtoClipboard(url);
-        } catch(e) {
-            console.log(e);
-        }
+        const svg = $("#職印").prop("outerHTML");
+        blob = new Blob([svg], {type: 'image/svg+xml'});
+        ci = new ClipboardItem({'image/svg+xml': blob});
+        navigator.clipboard.write([ci]);
+        /*
+        const url = "data:image/svg+xml;base64,"+btoa(unescape(encodeURIComponent(svg)));
+        console.log(url);
+        copyImageURLtoClipboard(url);
+        */
     });
 
     $("#PNG").on("click", async () => {
