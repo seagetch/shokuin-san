@@ -1,0 +1,311 @@
+<html>
+<head>
+<title>職印さん</title>
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/save-svg-as-png/1.4.17/saveSvgAsPng.min.js" integrity="sha512-vLkvtzbaBvXHQpdTtDT8Gg+vNqXGQ0+vgzoAFzuR6rbQQg+ECaFcjXpTT4EBA46EKACh49lJsBoarn3yYg0S4Q==" crossorigin="anonymous"></script>
+<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
+</head>
+<body>
+<script>
+$(document).ready(()=>{
+    function SelectText(element) {
+        var doc = document;
+        if (doc.body.createTextRange) {
+            var range = document.body.createTextRange();
+            range.moveToElementText(element);
+            range.select();
+        } else if (window.getSelection) {
+            var selection = window.getSelection();
+            var range = document.createRange();
+            range.selectNodeContents(element);
+            selection.removeAllRanges();
+            selection.addRange(range);
+        }
+    }
+    function setFont(font) {
+        style = {"font-family": font};
+        $("#職印 #日付").css(style);
+        $("#職印 #上側 *").css(style);
+        $("#職印 #下側 *").css(style);
+    }
+    
+    setFont("Serif");
+    
+    let circle_box = $("#職印 ellipse")[0].getBBox();
+    let cx         = circle_box.width / 2;
+
+    Date.prototype.toDateInputValue = (function() {
+        var local = new Date(this);
+        local.setMinutes(this.getMinutes() - this.getTimezoneOffset());
+        return local.toJSON().slice(0,10);
+    });
+    
+    $("#date-text").on("input", (event) => {
+        date  = new Date($(event.target).val())
+        year  = date.getFullYear()
+        month = (" "+(date.getMonth() + 1)).substr(-2)
+        day   = (" "+date.getDate()).substr(-2)
+        $("#職印 #日付").text(year + "." + month + "." + day)
+        date_box = $("#職印 #日付")[0].getBBox();
+        $("#職印 #日付").attr("x", cx - date_box.width / 2)
+    }).val(new Date().toDateInputValue()).trigger("input");
+    
+    $("#name-text").on("input", (event) => {
+        name_text = $(event.target).val()
+        names = name_text.split(/[\u{20}\u{3000}]/u)
+        if (names.length > 1) {
+            upper = names[0]
+            lower = names[1]
+        } else if (names[0].length == 2) {
+            upper = names[0][0]
+            lower = names[0][1]
+        } else {
+            upper = ""
+            lower = name_text
+        }
+
+        $("#職印 #上側 tspan").text(upper);
+        upper_box = $("#職印 #上側 tspan")[0].getBBox();
+        width = upper_box.width;
+        if (width > 80) {
+            scale = 80 / width;
+            width = 80;
+            $("#職印 #上側").attr("transform", "scale("+scale+",1)");            
+        } else {
+            scale = 1.0;
+            $("#職印 #上側").removeAttr("transform");
+        }
+        $("#職印 #上側").attr("x", (cx - width / 2) / scale);
+        $("#職印 #上側 tspan").attr("x", (cx - width / 2) / scale);
+        
+        $("#職印 #下側 tspan").text(lower);
+        lower_box = $("#職印 #下側 tspan")[0].getBBox();
+        width = lower_box.width;
+        if (width > 80) {
+            scale = 80 / width;
+            width = 80;
+            $("#職印 #下側").attr("transform", "scale("+scale+",1)");            
+        } else {
+            scale = 1.0;
+            $("#職印 #下側").removeAttr("transform");
+        }
+        $("#職印 #下側").attr("x", (cx - width / 2) / scale);
+        $("#職印 #下側 tspan").attr("x", (cx - width / 2) / scale);
+        
+    }).trigger("input");
+
+    let copyImageURLtoClipboard = (url) => {
+        let image = $("<div>").css({width: "512px", height: "512px"}).attr("contenteditable", true).append($("<img>").attr("id", "clipboard-img").attr("src", url)).appendTo(document.body);
+        SelectText(image[0]);
+        document.execCommand('copy');
+        window.getSelection().removeAllRanges();
+        image.remove();
+    }
+    $("#SVG").on("click", (ev)=>{
+        try {
+            const svg = $("#職印").prop("outerHTML");
+            const blob = new Blob([svg], {type: "image/svg+xml"});
+            const url = URL.createObjectURL(blob);
+            copyImageURLtoClipboard(url);
+        } catch(e) {
+            console.log(e);
+        }
+    });
+
+    $("#PNG").on("click", async () => {
+        svgAsPngUri($("#職印")[0]).then(copyImageURLtoClipboard);
+    });
+    
+    $("#color-text").on("input", (event) => {
+        color = $(event.target).val();
+        $("#職印 *").css({"stroke": color});
+        $("#職印 #日付").css({"fill": color, "stroke": "none"});
+        $("#職印 #上側 *").css({"fill": color, "stroke": "none"});
+        $("#職印 #下側 *").css({"fill": color, "stroke": "none"});
+    }).trigger("input");
+    
+})
+</script>
+
+<nav class="navbar navbar-expand-md navbar-dark bg-dark mb-4">
+    <a class="navbar-brand" href="#">職印さん</a>
+</nav>
+
+<div class="header"></div>
+<main role="main" class="container">
+<div>
+<label for="name-text">名前</label>
+<input type="text" id="name-text" name="name-text" />
+<label for="date-text">日付:</label>
+<input type="date" id="date-text" name="date-text" />
+<label for="color-text">色:</label>
+<input type="color" id="color-text" name="color-text" value="#ff0000" />
+</div>
+
+<div>
+<label>クリップボードにコピー</label>
+
+<input type="button" id="SVG" value="SVG" class="btn btn-primary" />
+<input type="button" id="PNG" value="PNG" class="btn btn-primary" />
+</div>
+
+<div style="padding: 5pt; margin: 3pt; border-style:solid; border-width:1px; border-color: #888888; width: 526px; height: 526px">
+<div>
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+<svg
+   xmlns:dc="http://purl.org/dc/elements/1.1/"
+   xmlns:cc="http://creativecommons.org/ns#"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   width="512"
+   height="512"
+   viewBox="0 0 135.46666 135.46667"
+   version="1.1"
+   id="職印"
+   inkscape:version="0.92.5 (2060ec1f9f, 2020-04-08)"
+   sodipodi:docname="職印-stripped.svg"
+   inkscape:export-filename="/home/seagetch/ピクチャ/職印.png"
+   inkscape:export-xdpi="96"
+   inkscape:export-ydpi="96">
+  <defs
+     id="defs2">
+    <clipPath
+       clipPathUnits="userSpaceOnUse"
+       id="clipPath4624">
+      <ellipse
+         id="ellipse4626"
+         style="fill:#000000;fill-opacity:1;stroke:none;stroke-width:2.11526012;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+         ry="67.723038"
+         rx="67.692497"
+         cy="229.22607"
+         cx="67.705566" />
+    </clipPath>
+    <clipPath
+       clipPathUnits="userSpaceOnUse"
+       id="clipPath4628">
+      <ellipse
+         id="ellipse4630"
+         style="fill:#000000;fill-opacity:1;stroke:none;stroke-width:2.11526012;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+         ry="67.723038"
+         rx="67.692497"
+         cy="229.22607"
+         cx="67.705566" />
+    </clipPath>
+    <clipPath
+       clipPathUnits="userSpaceOnUse"
+       id="clipPath4632">
+      <ellipse
+         id="ellipse4634"
+         style="fill:#000000;fill-opacity:1;stroke:none;stroke-width:2.11526012;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+         ry="67.723038"
+         rx="67.692497"
+         cy="229.22607"
+         cx="67.705566" />
+    </clipPath>
+  </defs>
+  <sodipodi:namedview
+     id="base"
+     pagecolor="#ffffff"
+     bordercolor="#666666"
+     borderopacity="1.0"
+     inkscape:pageopacity="0.0"
+     inkscape:pageshadow="2"
+     inkscape:zoom="0.7"
+     inkscape:cx="347.50245"
+     inkscape:cy="178.40991"
+     inkscape:document-units="mm"
+     inkscape:current-layer="layer1"
+     showgrid="true"
+     units="px"
+     showguides="true"
+     inkscape:guide-bbox="true"
+     inkscape:window-width="1872"
+     inkscape:window-height="1029"
+     inkscape:window-x="1968"
+     inkscape:window-y="27"
+     inkscape:window-maximized="1">
+    <inkscape:grid
+       type="xygrid"
+       id="grid4520" />
+  </sodipodi:namedview>
+  <metadata
+     id="metadata5">
+    <rdf:RDF>
+      <cc:Work
+         rdf:about="">
+        <dc:format>image/svg+xml</dc:format>
+        <dc:type
+           rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
+        <dc:title></dc:title>
+      </cc:Work>
+    </rdf:RDF>
+  </metadata>
+  <g
+     inkscape:label="レイヤー 1"
+     inkscape:groupmode="layer"
+     id="layer1"
+     transform="translate(0,-161.53332)">
+    <path
+       style="fill:none;stroke:#ff0000;stroke-width:2.12081289;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1;paint-order:fill markers stroke"
+       d="m 0,212.33332 c 135.9979,0 135.46666,0 135.46666,0 v 0"
+       id="path4538"
+       inkscape:connector-curvature="0"
+       clip-path="url(#clipPath4632)" />
+    <path
+       style="fill:none;stroke:#ff0000;stroke-width:2.12081289;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+       d="m 0,246.19999 h 135.46666 v 0"
+       id="path4540"
+       inkscape:connector-curvature="0"
+       clip-path="url(#clipPath4628)" />
+    <ellipse
+       id="path3713-3"
+       style="fill:none;fill-opacity:1;stroke:#ff0000;stroke-width:2.08352518;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+       ry="66.683609"
+       rx="66.70031"
+       cy="229.45287"
+       cx="67.752823"
+       clip-path="url(#clipPath4624)" />
+    <text
+       xml:space="preserve"
+       style="font-style:normal;font-weight:normal;font-size:20.59352303px;line-height:1.25;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;opacity:1;fill:#ff0000;fill-opacity:1;stroke:none;stroke-width:0.5148381;"
+       x="4.3237739"
+       y="236"
+       id="date"><tspan
+         sodipodi:role="line"
+         id="日付"
+         x="4.3237739"
+         y="236"
+         style="stroke-width:0.5148381;fill:#ff0000;fill-opacity:1;">YYYY.MM.DD</tspan></text>
+    <text
+       xml:space="preserve"
+       style="font-style:normal;font-weight:normal;font-size:16.93333244px;line-height:1.25;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;fill:#ff0000;fill-opacity:1;stroke:none;stroke-width:0.26458332;"
+       x="51.614059"
+       y="201.6429"
+       id="上側"><tspan
+         sodipodi:role="line"
+         id="upper"
+         x="51.614059"
+         y="201.6429"
+         style="font-size:33.86666489px;stroke-width:0.26458332;fill:#ff0000;fill-opacity:1;">上</tspan></text>
+    <text
+       xml:space="preserve"
+       style="font-style:normal;font-weight:normal;font-size:16.93333244px;line-height:1.25;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;fill:#ff0000;fill-opacity:1;stroke:none;stroke-width:0.26458332;"
+       x="50.765072"
+       y="281.12872"
+       id="下側"><tspan
+         sodipodi:role="line"
+         id="lower"
+         x="50.765072"
+         y="281.12872"
+         style="font-size:33.86666489px;stroke-width:0.26458332;fill:#ff0000;fill-opacity:1;">下</tspan></text>
+  </g>
+</svg>
+</div>
+</div>
+</main>
+</body>
+</html>
