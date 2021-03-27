@@ -124,10 +124,7 @@ $(document).ready(()=>{
             callback(canvas);
         }).attr("src", url);
     };
-    let canvasToPNG = (canvas, callback) => {
-        const png_data = canvas[0].toDataURL("image/png");
-        callback($("<img>").attr("src", png_data));
-    };
+
     $("#SVG").on("click", async (ev)=>{
         await get_permission();
         console.log("permitted");
@@ -141,66 +138,25 @@ $(document).ready(()=>{
         console.log("HTML clicked");
         const svg       = $("#職印").prop("outerHTML");
         SVGToCanvas(svg, true, (canvas) => {
-            canvasToPNG(canvas, (png) => {
-                copyImageToClipboard(png)
-                canvas.remove();
-            });
-        }); 
-        
-        /*
-        const url   = "data:image/svg+xml;base64,"+btoa(unescape(encodeURIComponent(svg)));
-        console.log(url);
-        const image = $("<img>").attr("id", "clipboard-img").on("load", (ev) => {
-            let width  = 512;
-            let height = 512;
-            let canvas = $("<canvas>").attr({width: width, height: height});
-            let ctx    = canvas[0].getContext("2d");
-            if (platform.os.family == "Windows") {
-                ctx.fillStyle = "#ffffff";
-                ctx.fillRect(0, 0, width, height);
-            }
-            ctx.drawImage(image[0], 0, 0);
             const png_data = canvas[0].toDataURL("image/png");
-            const png_img  = $("<img>").attr("src", png_data);
-            copyImagetoClipboard(png_img);
-        }).attr("src", url);
-        console.log(image);
-        */
+            callback($("<img>").attr("src", png_data));
+            copyImageToClipboard(png);
+            canvas.remove();
+        });
     });
 
     $("#PNG").on("click", async () => {
         await get_permission();
         console.log("permitted");
         const svg   = $("#職印").prop("outerHTML");
-        const png_image = SVGToCanvas(svg, true, (canvas) => {
+        const png_image = SVGToCanvas(svg, false, (canvas) => {
             canvas[0].toBlob(async png => {
                 let blob = new Blob([png], {type: "image/png"});
                 let ci = new ClipboardItem({'image/png': blob});
                 await navigator.clipboard.write([ci]);
                 canvas.remove();
             });
-        }); 
-/*
-        const url   = "data:image/svg+xml;base64,"+btoa(unescape(encodeURIComponent(svg)));
-        let   image = $("<img>").attr("id", "clipboard-img").on("load", async () => {
-            let width  = 512;
-            let height = 512;
-            let canvas = $("<canvas>").attr({width: width, height: height});
-            let ctx    = canvas[0].getContext("2d");
-            if (platform.os.family == "Windows") {
-                ctx.fillStyle = "#ffffff";
-                ctx.fillRect(0, 0, width, height);
-            }
-            ctx.drawImage(image[0], 0, 0);
-            canvas[0].toBlob(async png => {
-                let blob = new Blob([png], {type: "image/png"});
-                let ci = new ClipboardItem({'image/png': blob});
-                await navigator.clipboard.write([ci]);
-                image.remove();
-                canvas.remove();
-            });
-        }).attr("src", url);
-*/
+        });
     });
     
     $("#color-text").on("input", (event) => {
